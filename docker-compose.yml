@@ -1,0 +1,59 @@
+version: "3.7"
+
+services:
+
+  django: &base_django
+    container_name: django
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+    depends_on: 
+      - postgres
+      - redis
+    env_file:
+      - ./.env
+    restart: always
+    volumes: 
+      - ./src:/project
+      - static:/shared
+    # ports:
+    #   - 8888:8888
+  
+  celery:
+    <<: *base_django
+    container_name: celery
+    command: celery
+  
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+
+  nginx:
+    container_name: nginx
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    depends_on: 
+      - django
+    env_file: ./.env
+    ports:
+      - 80:80
+    restart: always
+    volumes:
+      - static:/shared
+
+  postgres:
+    container_name: postgres
+    image: "postgres"
+    env_file:
+      - ./.database.env
+    ports:
+      - 6543:5432
+    restart: always
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+
+volumes:
+  static:
+  pgdata:
+
